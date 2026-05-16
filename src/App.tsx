@@ -60,6 +60,7 @@ export default function App() {
     return auth.onAuthStateChanged((u) => {
       setUser(u);
       if (u && view === 'landing') setView('browse');
+      if (!u) setView('landing');
       setInitializing(false);
     });
   }, [view]);
@@ -148,14 +149,13 @@ export default function App() {
     );
   }
 
-  if (!user && view !== 'landing') return null;
+  const activeView = (!user && view !== 'landing') ? 'landing' : view;
 
   return (
-    <div className="min-h-screen relative font-sans text-white selection:bg-white/20 bg-black">
-      <div className="fixed inset-0 bg-[#000000]" />
-      <div className="ambient-glow opacity-30" />
+    <div className="min-h-screen relative font-sans text-white selection:bg-white/20 bg-[#050505]">
+      <div className="ambient-glow opacity-40 pointer-events-none" />
       
-      <header className="fixed top-0 left-0 right-0 z-50 px-8 py-5 flex justify-between items-center bg-black/40 backdrop-blur-2xl border-b border-white/[0.05]">
+      <header className="fixed top-0 left-0 right-0 z-50 px-8 py-5 flex justify-between items-center bg-[#050505]/60 backdrop-blur-3xl border-b border-white/[0.05]">
         <div className="flex items-center gap-2.5 cursor-pointer" onClick={() => setView('browse')}>
           <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center">
             <Music2 className="w-5 h-5 text-black" />
@@ -163,7 +163,7 @@ export default function App() {
           <h1 className="text-xl font-bold tracking-tight">TuneMatch</h1>
         </div>
         
-        {user && (
+        {user ? (
           <div className="flex items-center gap-3 bg-white/[0.06] pl-4 pr-1.5 py-1.5 rounded-full border border-white/[0.08] backdrop-blur-md">
             <div className="text-right hidden sm:block">
               <p className="text-xs font-semibold leading-none text-white">{user.displayName}</p>
@@ -180,13 +180,21 @@ export default function App() {
               className="w-7 h-7 rounded-full border border-white/10"
             />
           </div>
+        ) : (
+          <button 
+            onClick={loginWithGoogle}
+            className="px-6 py-2 bg-white text-black text-sm font-bold rounded-full hover:scale-105 active:scale-95 transition-all shadow-lg"
+          >
+            Sign In
+          </button>
         )}
       </header>
 
-      <main className="pt-24 pb-12 px-6 max-w-7xl mx-auto">
-        <AnimatePresence>
+      <main className="relative z-10 pt-24 pb-12 px-6 max-w-7xl mx-auto">
+        <AnimatePresence mode="wait">
           {showNamingModal && (
             <motion.div 
+              key="naming-modal"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -224,12 +232,12 @@ export default function App() {
             </motion.div>
           )}
 
-          {view === 'landing' && (
+          {activeView === 'landing' && (
             <motion.section 
               key="landing"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
               transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
               className="flex flex-col items-center justify-center min-h-[75vh] text-center"
             >
@@ -254,7 +262,7 @@ export default function App() {
             </motion.section>
           )}
 
-          {view === 'browse' && (
+          {activeView === 'browse' && (
             <motion.section 
               key="browse"
               initial={{ opacity: 0 }}
@@ -264,7 +272,7 @@ export default function App() {
             >
               <div className="relative h-64 rounded-3xl bg-neutral-900 overflow-hidden group shadow-2xl border border-white/[0.05]">
                 <div className="absolute inset-0 bg-neutral-900" />
-                {categories[1]?.imageUrl && categories[1].imageUrl !== '' && (
+                {categories && categories.length > 1 && categories[1]?.imageUrl && (
                   <img 
                     src={categories[1].imageUrl} 
                     className="absolute inset-0 w-full h-full object-cover opacity-20 transition-transform duration-1000 group-hover:scale-105"
@@ -416,11 +424,12 @@ export default function App() {
             </motion.section>
           )}
 
-          {view === 'room' && (
+          {activeView === 'room' && (
             <motion.section 
               key="room"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="grid grid-cols-1 lg:grid-cols-12 gap-16 pb-20"
             >
               {!room ? (
