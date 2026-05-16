@@ -1,0 +1,6 @@
+{
+  "name": "MelodyMind",
+  "description": "A multiplayer music quiz game with real-time lobbies and automated playlist sync.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

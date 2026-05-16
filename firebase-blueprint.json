@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile and stats",
+      "type": "object",
+      "properties": {
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "email": { "type": "string" },
+        "totalGames": { "type": "integer" },
+        "wins": { "type": "integer" },
+        "totalScore": { "type": "integer" }
+      },
+      "required": ["displayName"]
+    },
+    "Room": {
+      "title": "Room",
+      "description": "Multiplayer game lobby",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "hostId": { "type": "string" },
+        "status": { "type": "string", "enum": ["waiting", "starting", "playing", "ended"] },
+        "playlistId": { "type": "string" },
+        "currentRound": { "type": "integer" },
+        "currentPhase": { "type": "integer" },
+        "currentTrackId": { "type": "string" },
+        "phaseStartTime": { "type": "string", "format": "date-time" },
+        "players": { "type": "object" },
+        "tracks": { "type": "array" }
+      }
+    },
+    "Track": {
+      "title": "Track",
+      "description": "A single music track metadata",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "artist": { "type": "string" },
+        "previewUrl": { "type": "string" },
+        "albumArt": { "type": "string" },
+        "year": { "type": "string" }
+      }
+    },
+    "Playlist": {
+      "title": "Playlist",
+      "description": "A collection of tracks",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "tracks": { "type": "array" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User metadata"
+    },
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Game sessions"
+    },
+    "/playlists/{playlistId}": {
+      "schema": "Playlist",
+      "description": "Categories of music"
+    }
+  }
+}

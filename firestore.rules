@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() { return request.auth != null; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // --- Users ---
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow create: if isOwner(userId) 
+        && incoming().displayName is string 
+        && incoming().displayName.size() > 0 
+        && incoming().displayName.size() <= 50;
+      allow update: if isOwner(userId) 
+        && incoming().displayName == existing().displayName; // Example: prevent name changes for now
+    }
+
+    // --- Playlists ---
+    match /playlists/{playlistId} {
+      allow read: if isSignedIn();
+      allow write: if false; // Only manageable via Admin SDK or system processes
+    }
+
+    // --- Rooms ---
+    match /rooms/{roomId} {
+      allow read: if isSignedIn();
+      
+      function isValidRoom(data) {
+        return data.name is string && data.name.size() <= 100
+          && data.hostId is string
+          && data.status in ['waiting', 'starting', 'playing', 'intermission', 'ended']
+          && data.currentRound is int
+          && data.currentPhase is int
+          && data.currentPhase >= 1 && data.currentPhase <= 3
+          && (data.currentTrackId == null || data.currentTrackId is string)
+          && data.playlistId is string
+          && data.tracks is list
+          && (data.phaseStartTime == null || data.phaseStartTime is timestamp);
+      }
+
+      function isMember() {
+        return isSignedIn() && roomId in existing().players;
+      }
+
+      allow create: if isSignedIn() 
+        && isValidRoom(incoming())
+        && incoming().hostId == request.auth.uid
+        && incoming().players.keys().hasAll([request.auth.uid]);
+
+      allow update: if isSignedIn() && (
+        // Action 1: Host administrative updates
+        (existing().hostId == request.auth.uid && isValidRoom(incoming()))
+        ||
+        // Action 2: Player joining the room
+        (incoming().diff(existing()).affectedKeys().hasOnly(['players']) &&
+         incoming().players.keys().hasAll(existing().players.keys()) &&
+         incoming().players.size() == existing().players.size() + 1 &&
+         incoming().players.keys().hasAll([request.auth.uid]))
+        ||
+        // Action 3: Player submitting answer (potentially triggering instant round end)
+        (isMember() && (
+          // Case A: Just updating their own score/answer
+          (incoming().diff(existing()).affectedKeys().hasOnly(['players']) &&
+           incoming().players.diff(existing().players).affectedKeys().hasOnly([request.auth.uid]))
+          ||
+          // Case B: Correct answer triggering next round/phase
+          (incoming().diff(existing()).affectedKeys().hasAny(['currentRound', 'currentPhase', 'currentTrackId', 'phaseStartTime', 'status', 'players']) &&
+           incoming().players[request.auth.uid].lastAnswerCorrect == true &&
+           isValidRoom(incoming()))
+        ))
+      );
+
+      allow delete: if isSignedIn() && existing().hostId == request.auth.uid;
+    }
+  }
+}
