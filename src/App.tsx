@@ -20,7 +20,7 @@ import {
   Copy,
   Share2
 } from 'lucide-react';
-import { auth, loginWithGoogle, signInAnonymously } from './lib/firebase';
+import { auth, signInAnonymously } from './lib/firebase';
 import { useGame } from './hooks/useGame';
 import { Category, Track, Player, Room } from './types';
 import { cn } from './lib/utils';
@@ -41,26 +41,7 @@ export default function App() {
   const [selectedTerms, setSelectedTerms] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
-  const [isGuestMode, setIsGuestMode] = useState(false);
   const [guestName, setGuestName] = useState('');
-
-  const onLogin = async () => {
-    try {
-      setLoginError(null);
-      await loginWithGoogle();
-    } catch (err: any) {
-      console.error("Login Error:", err);
-      if (err.code === 'auth/popup-blocked') {
-        setLoginError("Спливаюче вікно заблоковане. Перевірте налаштування браузера або дозвольте спливаючі вікна для цього сайту.");
-      } else if (err.code === 'auth/unauthorized-domain') {
-        setLoginError("Домен не авторизований у Firebase. Додайте адресу вашого сайту у Firebase Console (Authentication > Settings > Authorized domains).");
-      } else if (err.code === 'auth/popup-closed-by-user') {
-        setLoginError(null);
-      } else {
-        setLoginError(`Помилка входу: ${err.message || 'Невідома помилка'}`);
-      }
-    }
-  };
 
   const onGuestLogin = async () => {
     if (!guestName.trim()) {
@@ -70,7 +51,6 @@ export default function App() {
     try {
       setLoginError(null);
       await signInAnonymously(guestName.trim());
-      setIsGuestMode(false);
     } catch (err: any) {
       setLoginError(`Помилка входу: ${err.message}`);
     }
@@ -221,14 +201,7 @@ export default function App() {
               )}
             </div>
           </div>
-        ) : (
-          <button 
-            onClick={onLogin}
-            className="px-6 py-2 bg-white text-black text-sm font-bold rounded-full hover:scale-105 active:scale-95 transition-all shadow-lg"
-          >
-            Sign In
-          </button>
-        )}
+        ) : null}
       </header>
 
       <main className="relative z-10 pt-24 pb-12 px-6 max-w-7xl mx-auto">
@@ -311,52 +284,27 @@ export default function App() {
                 Колективна гра в музичні квізи. Вгадуйте треки разом з друзями в реальному часі.
               </p>
               
-              {!isGuestMode ? (
-                <div className="flex flex-col sm:flex-row items-center gap-6">
-                  <button 
-                    onClick={onLogin}
-                    className="group px-12 py-5 bg-white text-black font-bold rounded-full transition-all hover:scale-[1.02] active:scale-95 shadow-2xl flex items-center gap-3"
-                  >
-                    Вхід через Google <ArrowRight className="w-5 h-5" />
-                  </button>
-                  <button 
-                    onClick={() => setIsGuestMode(true)}
-                    className="px-10 py-5 bg-white/5 text-white font-bold rounded-full border border-white/10 hover:bg-white/10 transition-all active:scale-95"
-                  >
-                    Грати як гість
-                  </button>
-                </div>
-              ) : (
-                <motion.div 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="w-full max-w-sm apple-glass p-8 rounded-[2rem] border border-white/10"
+              <motion.div 
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="w-full max-w-sm apple-glass p-8 rounded-[2rem] border border-white/10"
+              >
+                <input 
+                  type="text"
+                  autoFocus
+                  placeholder="Введіть ваше ім'я"
+                  value={guestName}
+                  onChange={(e) => setGuestName(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white mb-6 focus:outline-none focus:border-white/30"
+                  onKeyDown={(e) => e.key === 'Enter' && onGuestLogin()}
+                />
+                <button 
+                  onClick={onGuestLogin}
+                  className="w-full bg-white text-black py-4 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-3"
                 >
-                  <input 
-                    type="text"
-                    autoFocus
-                    placeholder="Введіть ваше ім'я"
-                    value={guestName}
-                    onChange={(e) => setGuestName(e.target.value)}
-                    className="w-full bg-white/5 border border-white/10 rounded-2xl py-4 px-6 text-white mb-6 focus:outline-none focus:border-white/30"
-                    onKeyDown={(e) => e.key === 'Enter' && onGuestLogin()}
-                  />
-                  <div className="flex gap-4">
-                    <button 
-                      onClick={() => setIsGuestMode(false)}
-                      className="flex-1 py-4 text-neutral-400 font-bold hover:text-white transition-colors"
-                    >
-                      Назад
-                    </button>
-                    <button 
-                      onClick={onGuestLogin}
-                      className="flex-1 bg-white text-black py-4 rounded-xl font-bold hover:scale-105 active:scale-95 transition-all"
-                    >
-                      Почати
-                    </button>
-                  </div>
-                </motion.div>
-              )}
+                  Почати грати <ArrowRight className="w-5 h-5" />
+                </button>
+              </motion.div>
             </motion.section>
           )}
 
